@@ -67,6 +67,7 @@ function landmarkCoords(landmark) {
   };
 }
 
+//gathering coordinates for the mouth
 function getMouthBox(faceResults) {
   if (faceResults.faceLandmarks.length === 0) return null;
   
@@ -88,6 +89,12 @@ function getMouthBox(faceResults) {
 function drawMouthBox({minX, maxX, minY, maxY}){
     ctx.strokeStyle = "blue";
     ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
+}
+
+function getHandLandmarkMap(hand) {
+  return Object.fromEntries(
+    hand.map((landmark, index) => [index, landmarkCoords(landmark)])
+  );
 }
 
 function drawHandLandmarks(handResults){
@@ -116,23 +123,35 @@ function isInMouthBox(x, y, mouthBox) {
 
 function checkLandmarksInMouth(handResults, mouthBox) {
   if (!mouthBox) return;
+  if (!handResults.landmarks || handResults.landmarks.length === 0) return false;
   
   const speechLandmarks = [3, 6, 10, 14]; //thumb, index, middle, ring
 
   //check to see if all landmarks are within the mouth box
-  for (const hand of handResults.landmarks){
-    for (const index of speechLandmarks){
-      const { x, y } = landmarkCoords(hand[index]);
+  for (const hand of handResults.landmarks) {
+    const landmarkMap = getHandLandmarkMap(hand);
+
+    if (!cursedSpeechLandmarkCheck(hand)) return false;
+    
+    for (const index of speechLandmarks) {
+      const { x, y } = landmarkMap[index];
       if (!isInMouthBox(x, y, mouthBox)) return false;
     }
   }
   return true;
 }
-/*
-function CursedSpeechLandmarkCheck(landmarks){
 
+//custom gesture recognizing
+function cursedSpeechLandmarkCheck(hand){
+  const landmarkMap = getHandLandmarkMap(hand);
+  const thumb = landmarkMap[3];
+  const index = landmarkMap[6];
+  const middle = landmarkMap[10];
+  const ring = landmarkMap[14];
+
+  return (thumb.y < index.y) && (index.y < middle.y) && (middle.y < ring.y);
 }
-*/
+
 
 function detect(){
   if (video.currentTime !== lastFrameTime){//checking if its a new frame
@@ -151,9 +170,8 @@ function detect(){
     }
     drawHandLandmarks(handResults)
 
-    //drawFaceLandmarks(faceResults)
-
-    checkLandmarksInMouth(handResults, mouthBox);
+    //this just checks 
+    console.log(checkLandmarksInMouth(handResults, mouthBox) ? "DONT MOVE" : "idle");
   }
 
   //calling detect for every animation frame
