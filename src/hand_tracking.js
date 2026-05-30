@@ -121,6 +121,8 @@ function isInMouthBox(x, y, mouthBox) {
   return ((x >= mouthBox.minX && x <= mouthBox.maxX) && (y >= mouthBox.minY && y <= mouthBox.maxY))
 }
 
+//custom gesture recognizing ----------------------------------------------------------------------------------------------------------------------------------------
+
 function checkLandmarksInMouth(handResults, mouthBox) {
   if (!mouthBox) return;
   if (!handResults.landmarks || handResults.landmarks.length === 0) return false;
@@ -141,7 +143,6 @@ function checkLandmarksInMouth(handResults, mouthBox) {
   return true;
 }
 
-//custom gesture recognizing
 function cursedSpeechLandmarkCheck(hand){
   const landmarkMap = getHandLandmarkMap(hand);
   const thumb = landmarkMap[3];
@@ -152,6 +153,31 @@ function cursedSpeechLandmarkCheck(hand){
   return (thumb.y < index.y) && (index.y < middle.y) && (middle.y < ring.y);
 }
 
+function sykkunoLandmarkCheck(hand){
+  const landmarkMap = getHandLandmarkMap(hand);
+  const tip = landmarkMap[8];
+  const dip = landmarkMap[7];
+  const pip = landmarkMap[6];
+  const minY = Math.max(...Object.values(landmarkMap).map(l => l.y));
+
+  const wrist = hand[0].z;
+  const knuckle = hand[9].z;
+  const palmFacingCamera = knuckle < wrist;
+
+  const straight = Math.abs(tip.x - dip.x) < 10 && Math.abs(dip.x - pip.x) < 10;
+
+  const top = (tip.y <= minY + 2)
+
+  return top && palmFacingCamera && straight
+}
+
+function detectGesture(handResults, mouthBox) {
+  for (const hand of handResults.landmarks) {
+    if (checkLandmarksInMouth(handResults, mouthBox)) return "cursedSpeech";
+    if (sykkunoLandmarkCheck(hand)) return "picture!";
+  }
+  return null;
+}
 
 function detect(){
   if (video.currentTime !== lastFrameTime){//checking if its a new frame
@@ -170,8 +196,9 @@ function detect(){
     }
     drawHandLandmarks(handResults)
 
-    //this just checks 
-    console.log(checkLandmarksInMouth(handResults, mouthBox) ? "DONT MOVE" : "idle");
+    
+    const gesture = detectGesture(handResults, mouthBox);
+    console.log(gesture ?? "idle")
   }
 
   //calling detect for every animation frame
