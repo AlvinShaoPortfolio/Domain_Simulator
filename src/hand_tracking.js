@@ -195,13 +195,16 @@ function rabbitEscape(handObjects){
   const thumb1Highest = fingerLandmarks.every(i => map1[4].y <= map1[i].y);
   const thumb2Lowest = fingerLandmarks.every(i => map2[4].y >= map2[i].y);
 
-  //console.log("thumb1" + thumb1Highest + "      " + "thumb2" + thumb2Lowest + "      " + "interlaced" + indexInterlaced(handObjects))
+  const thumb1Lowest = fingerLandmarks.every(i => map1[4].y >= map1[i].y);
+  const thumb2Highest = fingerLandmarks.every(i => map2[4].y <= map2[i].y);
 
-  return thumb1Highest && thumb2Lowest && indexInterlaced(hand1, hand2)
+  console.log("thumb1" + thumb1Highest + "      " + "thumb2" + thumb2Lowest + "      " + "interlaced" + indexInterlaced(handObjects))
+
+  return ((thumb1Highest && thumb2Lowest) || (thumb2Highest && thumb1Lowest)) && indexInterlaced(hand1, hand2);
 }
 
 function detectGesture(handObjects, mouthBox) {
-  if (rabbitEscape(handObjects)) return "rabbitEscape";
+  //if (rabbitEscape(handObjects)) return "rabbitEscape";
   if (cursedSpeech(handObjects, mouthBox)) return "cursedSpeech";
   if (mahoraga(handObjects)) return "mahoraga";
   return null;
