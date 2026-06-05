@@ -1,15 +1,32 @@
-.container {
-  position: relative;
+body {
+  margin: 0;
+  overflow: hidden;
+}
+
+video {
+  transform: scaleX(-1);
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
 }
 
-video{
-    transform: scaleX(-1);
+.container {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  width: 360px;
+  height: 270px;
+  border-radius: 8px;
+  z-index: 10;
+  overflow: hidden;
 }
 
-canvas {
+#output {
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
 }

@@ -1,4 +1,5 @@
 import { HandLandmarker, FaceLandmarker, FilesetResolver } from "@mediapipe/tasks-vision"
+import { updateScene } from './simulation.js';
 
 //fetches wasm files to run mediapipes in browser
 const filesetResolver = await FilesetResolver.forVisionTasks(
@@ -199,9 +200,6 @@ function rabbitEscape(handObjects){
   return thumb1Highest && thumb2Lowest && indexInterlaced(hand1, hand2)
 }
 
-
-
-
 function detectGesture(handObjects, mouthBox) {
   if (rabbitEscape(handObjects)) return "rabbitEscape";
   if (cursedSpeech(handObjects, mouthBox)) return "cursedSpeech";
@@ -228,7 +226,7 @@ function detect(){
     drawHandLandmarks(handObjects)
 
     const gesture = detectGesture(handObjects, mouthBox);
-    console.log(gesture ?? "idle")
+    updateScene(gesture);
   }
 
   //calling detect for every animation frame
