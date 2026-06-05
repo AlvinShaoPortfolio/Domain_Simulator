@@ -165,14 +165,45 @@ function mahoraga(handObjects){
 }
 
 //rabbit escape
+function indexInterlaced(hand1, hand2){
+  if (!hand1 || !hand2) return false;
+
+  const indexLandmarks = [7, 8];
+
+  return indexLandmarks.every(landmark => {
+    const p1 = landmarkCoords(hand1[landmark]);
+    const p2 = landmarkCoords(hand2[landmark]);
+    const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    return dist < 20; 
+  });
+}
 
 
-//
+function rabbitEscape(handObjects){
+  const hands = handObjects.landmarks
+
+  if (!hands || hands.length !== 2) return false;
+
+  const [hand1, hand2] = hands;
+
+  const map1 = getHandLandmarkMap(hand1);
+  const map2 = getHandLandmarkMap(hand2);
+
+  const fingerLandmarks = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+
+  const thumb1Highest = fingerLandmarks.every(i => map1[4].y <= map1[i].y);
+  const thumb2Lowest = fingerLandmarks.every(i => map2[4].y >= map2[i].y);
+
+  //console.log("thumb1" + thumb1Highest + "      " + "thumb2" + thumb2Lowest + "      " + "interlaced" + indexInterlaced(handObjects))
+
+  return thumb1Highest && thumb2Lowest && indexInterlaced(hand1, hand2)
+}
 
 
 
 
 function detectGesture(handObjects, mouthBox) {
+  if (rabbitEscape(handObjects)) return "rabbitEscape";
   if (cursedSpeech(handObjects, mouthBox)) return "cursedSpeech";
   if (mahoraga(handObjects)) return "mahoraga";
   return null;
@@ -190,6 +221,7 @@ function detect(){
     
     const mouthBox = getMouthBox(faceObject);
 
+    //drawing the box around mouth + landmarks on the hand
     if (mouthBox){ 
       drawMouthBox(mouthBox);
     }
