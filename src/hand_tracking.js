@@ -42,24 +42,6 @@ canvas.height = video.videoHeight;
 
 let lastFrameTime = -1;
 
-/*
-function drawFaceLandmarks(faceResults) {
-  if (faceResults.faceLandmarks.length === 0) return;
-  
-  faceResults.faceLandmarks[0].forEach((landmark, index) => {
-    const { x, y } = landmarkCoords(landmark);
-
-    ctx.beginPath();
-    ctx.arc(x, y, 2, 0, 2 * Math.PI);
-    ctx.fillStyle = "yellow";
-    ctx.fill();
-    ctx.fillStyle = "black";
-    ctx.font = "10px Arial";
-    ctx.fillText(index, x, y);
-  });
-}
-*/
-
 function landmarkCoords(landmark) {
   return {
     x: (1 - landmark.x) * canvas.width,
@@ -68,10 +50,10 @@ function landmarkCoords(landmark) {
 }
 
 //gathering coordinates for the mouth
-function getMouthBox(faceResults) {
-  if (faceResults.faceLandmarks.length === 0) return null;
+function getMouthBox(faceObject) {
+  if (faceObject.faceLandmarks.length === 0) return null;
   
-  const face = faceResults.faceLandmarks[0];
+  const face = faceObject.faceLandmarks[0];
   const mouthIndices = [137, 164, 152, 366]; //right, up, down, left
   
   const coords = mouthIndices.map(i => landmarkCoords(face[i]));
@@ -97,11 +79,11 @@ function getHandLandmarkMap(hand) {
   );
 }
 
-function drawHandLandmarks(handResults){
+function drawHandLandmarks(handObjects){
   //for both hands i am finding the landmarks of each hand and then 
   //drawing a dot at the landmark location using the drawing context
-  handResults.landmarks.forEach((hand, handIndex) => {
-    const isLeft = handResults.handedness[handIndex][0].categoryName === "Right";
+  handObjects.landmarks.forEach((hand, handIndex) => {
+    const isLeft = handObjects.handedness[handIndex][0].categoryName === "Right"; //checking === right beacuse I mirrored the camera.
 
     hand.forEach((landmark, index) => {
       const {x, y} = landmarkCoords(landmark)
@@ -122,15 +104,26 @@ function isInMouthBox(x, y, mouthBox) {
 }
 
 //custom gesture recognizing ----------------------------------------------------------------------------------------------------------------------------------------
+//cursed Speech
+function cursedSpeechLandmarkCheck(hand){
+  const landmarkMap = getHandLandmarkMap(hand);
+  const thumb = landmarkMap[3];
+  const index = landmarkMap[6];
+  const middle = landmarkMap[10];
+  const ring = landmarkMap[14];
 
-function checkLandmarksInMouth(handResults, mouthBox) {
-  if (!mouthBox) return;
-  if (!handResults.landmarks || handResults.landmarks.length === 0) return false;
-  
+  return (thumb.y < index.y) && (index.y < middle.y) && (middle.y < ring.y);
+}
+
+function cursedSpeech(handObjects, mouthBox) {
+  const hands = handObjects.landmarks
   const speechLandmarks = [3, 6, 10, 14]; //thumb, index, middle, ring
 
+  if (!mouthBox) return;
+  if (!hands || hands.length === 0) return false;
+
   //check to see if all landmarks are within the mouth box
-  for (const hand of handResults.landmarks) {
+  for (const hand of hands) {
     const landmarkMap = getHandLandmarkMap(hand);
 
     if (!cursedSpeechLandmarkCheck(hand)) return false;
@@ -143,39 +136,45 @@ function checkLandmarksInMouth(handResults, mouthBox) {
   return true;
 }
 
-function cursedSpeechLandmarkCheck(hand){
+//mahoraga 
+function isFist(hand){
   const landmarkMap = getHandLandmarkMap(hand);
-  const thumb = landmarkMap[3];
-  const index = landmarkMap[6];
-  const middle = landmarkMap[10];
-  const ring = landmarkMap[14];
-
-  return (thumb.y < index.y) && (index.y < middle.y) && (middle.y < ring.y);
+  const fingerTips = [8, 12, 16, 20];
+  const fingerBases = [5, 9, 13, 17];
+  
+  return fingerTips.every((tip, i) => { //check to see if tips are above bases but also if tips/basess are close in dist
+    const tipPos = landmarkMap[tip];
+    const basePos = landmarkMap[fingerBases[i]];
+    const dist = Math.hypot(tipPos.x - basePos.x, tipPos.y - basePos.y);
+    return dist < 80; 
+  });
 }
 
-function sykkunoLandmarkCheck(hand){
-  const landmarkMap = getHandLandmarkMap(hand);
-  const tip = landmarkMap[8];
-  const dip = landmarkMap[7];
-  const pip = landmarkMap[6];
-  const minY = Math.max(...Object.values(landmarkMap).map(l => l.y));
+function mahoraga(handObjects){
+  const hands = handObjects.landmarks
 
-  const wrist = hand[0].z;
-  const knuckle = hand[9].z;
-  const palmFacingCamera = knuckle < wrist;
+  if (!hands || hands.length !== 2) return false;
 
-  const straight = Math.abs(tip.x - dip.x) < 10 && Math.abs(dip.x - pip.x) < 10;
+  const hand1Index = handObjects.handedness[0][0].categoryName;
+  const hand1 = hand1Index === "Left" ? hands[0] : hands[1];
+  const hand2 = hand1Index === "Left" ? hands[1] : hands[0]; 
 
-  const top = (tip.y <= minY + 2)
+  const rightOverLeft = hand1[0].y > hand2[0].y
 
-  return top && palmFacingCamera && straight
+  return isFist(hand1) && isFist(hand2) && rightOverLeft;
 }
 
-function detectGesture(handResults, mouthBox) {
-  for (const hand of handResults.landmarks) {
-    if (checkLandmarksInMouth(handResults, mouthBox)) return "cursedSpeech";
-    if (sykkunoLandmarkCheck(hand)) return "picture!";
-  }
+//rabbit escape
+
+
+//
+
+
+
+
+function detectGesture(handObjects, mouthBox) {
+  if (cursedSpeech(handObjects, mouthBox)) return "cursedSpeech";
+  if (mahoraga(handObjects)) return "mahoraga";
   return null;
 }
 
@@ -184,20 +183,19 @@ function detect(){
     lastFrameTime = video.currentTime;
 
     //getting hand and face landmarks
-    const handResults = handLandmarker.detectForVideo(video, performance.now());
-    const faceResults = faceLandmarker.detectForVideo(video, performance.now());
+    const handObjects = handLandmarker.detectForVideo(video, performance.now());
+    const faceObject = faceLandmarker.detectForVideo(video, performance.now());
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    const mouthBox = getMouthBox(faceResults);
+    const mouthBox = getMouthBox(faceObject);
 
     if (mouthBox){ 
       drawMouthBox(mouthBox);
     }
-    drawHandLandmarks(handResults)
+    drawHandLandmarks(handObjects)
 
-    
-    const gesture = detectGesture(handResults, mouthBox);
+    const gesture = detectGesture(handObjects, mouthBox);
     console.log(gesture ?? "idle")
   }
 
