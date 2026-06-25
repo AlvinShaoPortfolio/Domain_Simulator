@@ -71,25 +71,25 @@ export function updateScene(gesture) {
 function initMahoraga() {
   console.log("mahoraga")
 
-  const count = 5000;
-  const radius = 5;
+  const outerRingCount = 5000;
+  const outerRadius = 5;
 
-  startPositions = new Float32Array(count*3);
-  targetPositions = new Float32Array(count*3);
+  startPositions = new Float32Array(outerRingCount*3);
+  targetPositions = new Float32Array(outerRingCount*3);
 
-  for (let i =0; i < count; i++){
+  for (let i =0; i < outerRingCount; i++){
     startPositions[i*3] = (Math.random() - 0.5) * 30;
     startPositions[i*3+1] = (Math.random() - 0.5) * 30;
     startPositions[i*3+2] = (Math.random() - 0.5) * 30;
 
-    const angle = (i / count) * 2 * Math.PI
-    const adjustedRadius = radius + (Math.random() - 0.5) * 2;
+    const angle = (i / outerRingCount) * 2 * Math.PI
+    const adjustedRadius = outerRadius + (Math.random() - 0.5) * 2;
     targetPositions[i * 3] = Math.cos(angle) * adjustedRadius;
     targetPositions[i * 3 + 1] = Math.sin(angle) * adjustedRadius;
     targetPositions[i * 3 + 2] = (Math.random() - 0.5) * 2;
   }
 
-  const positions = new Float32Array(count * 3);
+  const positions = new Float32Array(outerRingCount * 3);
 
   for (let i = 0; i < positions.length; i++) {
     positions[i] = startPositions[i];
